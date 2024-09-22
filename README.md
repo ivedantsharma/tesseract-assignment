@@ -30,11 +30,10 @@ This API allows you to extract text and bounding boxes from images using Optical
 ## API Endpoints
 
 1. Extract Text from Image
-# POST /api/get-text
+- POST: /api/get-text
 
 2. Get Bounding Boxes
-# POST /api/get-bboxes
+- POST: /api/get-bboxes
 
 You can test the API using tools like Postman or cURL by sending a POST request with the required body.
-
 Feel free to modify the sections, add more details, or adjust the usage examples as needed!
