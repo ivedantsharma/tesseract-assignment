@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const tesseract = require("tesseract.js");
 const bodyParser = require("body-parser");
@@ -11,7 +12,7 @@ app.use(bodyParser.json());
 const decodeBase64Image = (dataString) => {
   const matches = dataString.match(/^data:image\/([A-Za-z-+/]+);base64,(.+)$/);
   if (!matches || matches.length !== 3) {
-    return new Error("Invalid base64 string");
+    throw new Error("Invalid base64 string");
   }
   return Buffer.from(matches[2], "base64");
 };
@@ -37,10 +38,6 @@ app.post("/api/get-text", async (req, res) => {
 
   try {
     const imageBuffer = decodeBase64Image(base64_image);
-
-    if (imageBuffer instanceof Error) {
-      return handleInvalidImage(res, "Invalid base64_image.");
-    }
 
     // Use Tesseract to recognize text from the image
     const result = await tesseract.recognize(imageBuffer);
@@ -83,22 +80,31 @@ app.post("/api/get-bboxes", async (req, res) => {
   try {
     const imageBuffer = decodeBase64Image(base64_image);
 
-    if (imageBuffer instanceof Error) {
-      return handleInvalidImage(res, "Invalid base64_image.");
+    // Use Tesseract to recognize bounding boxes from the image
+    const result = await tesseract.recognize(imageBuffer);
+
+    // Extract bounding boxes based on bbox_type
+    let boxes;
+    if (bbox_type === "word") {
+      boxes = result.data.words;
+    } else if (bbox_type === "line") {
+      boxes = result.data.lines;
+    } else if (bbox_type === "paragraph") {
+      boxes = result.data.paragraphs;
+    } else if (bbox_type === "block") {
+      boxes = result.data.blocks;
+    } else if (bbox_type === "page") {
+      boxes = [result.data.page];
     }
 
-    // Use Tesseract to recognize bounding boxes from the image
-    const result = await tesseract.recognize(imageBuffer, {
-      tessedit_char_whitelist: bbox_type,
-    });
     return res.json({
       success: true,
       result: {
-        bboxes: result.data.words.map((word) => ({
-          x_min: word.bbox.x0,
-          y_min: word.bbox.y0,
-          x_max: word.bbox.x1,
-          y_max: word.bbox.y1,
+        bboxes: boxes.map((box) => ({
+          x_min: box.bbox.x0,
+          y_min: box.bbox.y0,
+          x_max: box.bbox.x1,
+          y_max: box.bbox.y1,
         })),
       },
     });
